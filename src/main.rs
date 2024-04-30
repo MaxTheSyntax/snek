@@ -3,6 +3,7 @@ use crossterm::{
     event::{poll, read, Event, KeyCode, KeyEvent},
     execute, terminal,
 };
+use std::{collections::LinkedList, io::stdin};
 use std::io;
 use std::time::Duration;
 use std::{collections::LinkedList, time::Instant};
@@ -33,12 +34,32 @@ struct Snake {
     direction: Direction,
 }
 
-// Clears the game board
-fn clear() {
-    execute!(io::stdout(), terminal::Clear(terminal::ClearType::All)).unwrap();
-}
-
 fn main() {
+    // Get user to choose mode
+    let mut choice = String::new();
+    println!("Choose mode: ");
+    println!("a) normal ");
+    println!("b) safe ");
+    println!("c) ai ");
+    println!();
+
+    stdin().read_line(&mut choice).expect("Did not enter a valid string");
+    if let Some('\n')=choice.chars().next_back() {
+        choice.pop();
+    }
+    if let Some('\r')=choice.chars().next_back() {
+        choice.pop();
+    }
+
+    static mut MODE: &str = "normal";
+    unsafe {
+        if choice == "safe" || choice == "b" {
+            MODE = "safe";
+        } else if choice == "ai" || choice == "c" {
+            MODE = "ai";
+        }
+    }
+
     // Initialize game elements
     clear();
     let mut snake = Snake {
@@ -85,14 +106,17 @@ fn main() {
             now.elapsed().as_secs(),
         );
 
-        // AI
-        // let mut head = snake.body.front().unwrap().clone();
-        // if head.0 > food.0 { snake.direction = change_direction(Direction::Left, snake.direction); }
-        // else if head.0 < food.0 { snake.direction = change_direction(Direction::Right, snake.direction); }
-
-        // else if head.1 > food.1 { snake.direction = change_direction(Direction::Up, snake.direction); }
-        // else if head.1 < food.1 { snake.direction = change_direction(Direction::Down, snake.direction); }
-
+        // AI 
+        let mut head = snake.body.front().unwrap().clone();
+        unsafe {
+            if MODE == "ai" {
+                if head.0 > food.0 { snake.direction = change_direction(Direction::Left, snake.direction); }
+                else if head.0 < food.0 { snake.direction = change_direction(Direction::Right, snake.direction); }
+                else if head.1 > food.1 { snake.direction = change_direction(Direction::Up, snake.direction); }
+                else if head.1 < food.1 { snake.direction = change_direction(Direction::Down, snake.direction); }
+            }
+        }
+        
         // Handle player input
         if poll(Duration::from_millis(duration_ms)).unwrap() {
             if let Event::Key(KeyEvent { code, .. }) = read().unwrap() {
@@ -124,7 +148,6 @@ fn main() {
         }
 
         // Update snake position
-        let mut head = snake.body.front().unwrap().clone();
         match snake.direction {
             Direction::Up => {
                 if head.1 == 0 {
@@ -176,12 +199,14 @@ fn main() {
             snake.body.pop_back();
         }
 
-        // if head.0 < 0 || head.0 >= board_width || head.1 < 0 || head.1 >= board_height || snake.body.contains(&head) {
-        //     game_over = true;
-        // }
+        unsafe {
+            // if head.0 < 0 || head.0 >= board_width || head.1 < 0 || head.1 >= board_height || snake.body.contains(&head) {
+            //     game_over = true;
+            // }
 
-        if snake.body.contains(&head) {
-            game_over = true;
+            if snake.body.contains(&head) && MODE == "normal" {
+                game_over = true;
+            }
         }
 
         snake.body.push_front(head);
@@ -192,6 +217,11 @@ fn main() {
 
     // Display game over screen
     draw_game_over(score);
+}
+
+// Clears the game board
+fn clear() {
+    execute!(io::stdout(), terminal::Clear(terminal::ClearType::All)).unwrap();
 }
 
 fn change_direction(new_direction: Direction, current_direction: Direction) -> Direction {
