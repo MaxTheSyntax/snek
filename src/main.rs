@@ -3,9 +3,9 @@ use crossterm::{
     event::{poll, read, Event, KeyCode, KeyEvent},
     execute, terminal,
 };
-use std::collections::LinkedList;
 use std::io;
 use std::time::Duration;
+use std::{collections::LinkedList, time::Instant};
 extern crate rand;
 use rand::Rng;
 
@@ -15,6 +15,17 @@ enum Direction {
     Down,
     Left,
     Right,
+}
+
+impl Direction {
+    fn as_str(&self) -> &str {
+        match self {
+            Direction::Up => "Up",
+            Direction::Down => "Down",
+            Direction::Left => "Left",
+            Direction::Right => "Right",
+        }
+    }
 }
 
 struct Snake {
@@ -38,7 +49,6 @@ fn main() {
     let mut food = (10, 10);
     let mut score = 0;
     let mut game_over = false;
-    let mut start_time: i32 = 0;
 
     let board_width = 100;
     let board_height = 20;
@@ -56,8 +66,11 @@ fn main() {
         &snake.direction,
         board_height,
         board_width,
+        0,
     );
     clear();
+
+    let now = Instant::now();
 
     // Game loop
     while !game_over {
@@ -69,6 +82,7 @@ fn main() {
             &snake.direction,
             board_height,
             board_width,
+            now.elapsed().as_secs(),
         );
 
         // AI
@@ -174,17 +188,6 @@ fn main() {
 
         // Move cursor to the start of the game board
         execute!(io::stdout(), cursor::MoveTo(0, 1)).unwrap();
-
-        // // Draw updated game state
-        // draw_game(
-        //     &snake,
-        //     &food,
-        //     score,
-        //     &snake.direction,
-        //     board_height,
-        //     board_width,
-        //     time_value,
-        // );
     }
 
     // Display game over screen
@@ -211,14 +214,15 @@ fn draw_game(
     direction: &Direction,
     board_height: i32,
     board_width: i32,
+    now: u64,
 ) {
     // Draw the game board
     for y in 0..board_height {
         for x in 0..board_width {
             let c = if (x, y) == *food {
-                '$' // Snake body
+                '$' // The goodies
             } else if snake.body.contains(&(x, y)) {
-                'o' // Food
+                'o' // Snake
             } else {
                 '.' // Empty space
             };
@@ -227,14 +231,14 @@ fn draw_game(
         println!();
     }
 
-    let mut time_elapsed: i32 = 0;
-
     // Move cursor to the bottom to draw the score
     execute!(io::stdout(), cursor::MoveTo(0, 0)).unwrap();
     // Draw the score and direction
     println!(
-        "Score: {} Direction: {:?} - - - -{} ",
-        score, direction, time_elapsed
+        "      Score: {:<25} Direction: {:<25} Time Elapsed: {} ",
+        score,
+        direction.as_str(),
+        now,
     );
 }
 
