@@ -3,10 +3,9 @@ use crossterm::{
     event::{poll, read, Event, KeyCode, KeyEvent},
     execute, terminal,
 };
-use std::{collections::LinkedList, io::stdin};
+use std::{collections::LinkedList, io::stdin, time::Instant};
 use std::io;
 use std::time::Duration;
-use std::{collections::LinkedList, time::Instant};
 extern crate rand;
 use rand::Rng;
 
@@ -193,7 +192,7 @@ fn main() {
             // Generate new food location
             food = (
                 rand::thread_rng().gen_range(0..board_width),
-                rand::thread_rng().gen_range(0..board_width),
+                rand::thread_rng().gen_range(0..board_height),
             );
         } else {
             snake.body.pop_back();
