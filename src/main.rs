@@ -38,7 +38,7 @@ fn main() {
     let board_width = 100;
     let board_height = 20;
 
-    let duration_ms_default = 250;
+    let duration_ms_default = 150;
     let mut duration_ms = duration_ms_default;
     
     // Draw initial game state
@@ -72,25 +72,6 @@ fn main() {
                 }
             }
         }
-
-        //  quickkkkkk
-        // if poll(Duration::from_millis(duration_ms)).unwrap() {
-        //     if let Event::Key(KeyEvent { code, .. }) = read().unwrap() { 
-        //         if code == KeyCode::Char('f') { 
-        //             duration_ms = 0; 
-        //         }
-        //     }
-        //     if let Event::Key(KeyEvent { code, .. }) = read().unwrap() { 
-        //         if code == KeyCode::Char('g') { 
-        //             duration_ms = duration_ms_default; 
-        //         }
-        //     }
-        // }
-
-        // let ten_millis = time::Duration::from_millis(duration_ms);
-        // let now = time::Instant::now();
-        // thread::sleep(ten_millis);
-        // assert!(now.elapsed() >= ten_millis);
 
         // Update snake position
         let mut head = snake.body.front().unwrap().clone();
