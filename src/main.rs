@@ -43,6 +43,7 @@ fn main() {
     
     // Draw initial game state
     draw_game(&snake, &food, score, &snake.direction, board_height, board_width);
+    clear();
 
     // Game loop
     while !game_over {
@@ -52,23 +53,23 @@ fn main() {
         // Handle player input
         let mut head = snake.body.front().unwrap().clone();
 
-        if head.0 > food.0 { snake.direction = change_direction(Direction::Left, snake.direction); }
-        else if head.0 < food.0 { snake.direction = change_direction(Direction::Right, snake.direction); }
+        // if head.0 > food.0 { snake.direction = change_direction(Direction::Left, snake.direction); }
+        // else if head.0 < food.0 { snake.direction = change_direction(Direction::Right, snake.direction); }
 
-        else if head.1 > food.1 { snake.direction = change_direction(Direction::Up, snake.direction); }
-        else if head.1 < food.1 { snake.direction = change_direction(Direction::Down, snake.direction); }
+        // else if head.1 > food.1 { snake.direction = change_direction(Direction::Up, snake.direction); }
+        // else if head.1 < food.1 { snake.direction = change_direction(Direction::Down, snake.direction); }
         
-        // if poll(Duration::from_millis(duration_ms)).unwrap() {
-        //     if let Event::Key(KeyEvent { code, .. }) = read().unwrap() {
-        //         match code {
-        //             KeyCode::Up => snake.direction = change_direction(Direction::Up, snake.direction),
-        //             KeyCode::Down => snake.direction = change_direction(Direction::Down, snake.direction),
-        //             KeyCode::Left => snake.direction = change_direction(Direction::Left, snake.direction),
-        //             KeyCode::Right => snake.direction = change_direction(Direction::Right, snake.direction),
-        //             _ => ()
-        //         }
-        //     }
-        // }
+        if poll(Duration::from_millis(duration_ms)).unwrap() {
+            if let Event::Key(KeyEvent { code, .. }) = read().unwrap() {
+                match code {
+                    KeyCode::Up => snake.direction = change_direction(Direction::Up, snake.direction),
+                    KeyCode::Down => snake.direction = change_direction(Direction::Down, snake.direction),
+                    KeyCode::Left => snake.direction = change_direction(Direction::Left, snake.direction),
+                    KeyCode::Right => snake.direction = change_direction(Direction::Right, snake.direction),
+                    _ => ()
+                }
+            }
+        }
 
         //  quickkkkkk
         if poll(Duration::from_millis(duration_ms)).unwrap() {
@@ -128,7 +129,7 @@ fn main() {
         snake.body.push_front(head);
 
         // Move cursor to the start of the game board
-        execute!(io::stdout(), cursor::MoveTo(0, 0)).unwrap();
+        execute!(io::stdout(), cursor::MoveTo(0, 1)).unwrap();
 
         // Draw updated game state
         draw_game(&snake, &food, score, &snake.direction, board_height, board_width);
