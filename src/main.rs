@@ -38,11 +38,12 @@ fn main() {
     let mut food = (10, 10);
     let mut score = 0;
     let mut game_over = false;
+    let mut start_time: i32 = 0;
 
     let board_width = 100;
     let board_height = 20;
 
-    let duration_ms_default = 150;
+    let duration_ms_default = 100;
     let mut duration_ms = duration_ms_default;
 
     let mut speed_debounce: bool = false;
@@ -94,9 +95,9 @@ fn main() {
                     KeyCode::Right => {
                         snake.direction = change_direction(Direction::Right, snake.direction)
                     }
-                    KeyCode::Char('f') => {
+                    KeyCode::Char(' ') => {
                         if speed_debounce == false {
-                            duration_ms = 0;
+                            duration_ms = 1;
                             speed_debounce = true;
                         } else {
                             duration_ms = duration_ms_default;
@@ -153,9 +154,10 @@ fn main() {
         if head == food {
             score += 1;
             // Generate new food location
-            let food_x: i32 = rand::thread_rng().gen_range(0..board_width);
-            let food_y: i32 = rand::thread_rng().gen_range(0..board_height);
-            food = (food_x, food_y);
+            food = (
+                rand::thread_rng().gen_range(0..board_width),
+                rand::thread_rng().gen_range(0..board_width),
+            );
         } else {
             snake.body.pop_back();
         }
@@ -173,15 +175,16 @@ fn main() {
         // Move cursor to the start of the game board
         execute!(io::stdout(), cursor::MoveTo(0, 1)).unwrap();
 
-        // Draw updated game state
-        draw_game(
-            &snake,
-            &food,
-            score,
-            &snake.direction,
-            board_height,
-            board_width,
-        );
+        // // Draw updated game state
+        // draw_game(
+        //     &snake,
+        //     &food,
+        //     score,
+        //     &snake.direction,
+        //     board_height,
+        //     board_width,
+        //     time_value,
+        // );
     }
 
     // Display game over screen
@@ -224,10 +227,15 @@ fn draw_game(
         println!();
     }
 
+    let mut time_elapsed: i32 = 0;
+
     // Move cursor to the bottom to draw the score
     execute!(io::stdout(), cursor::MoveTo(0, 0)).unwrap();
     // Draw the score and direction
-    println!("Score: {} Direction: {:?} - - - -", score, direction);
+    println!(
+        "Score: {} Direction: {:?} - - - -{} ",
+        score, direction, time_elapsed
+    );
 }
 
 fn draw_game_over(score: u32) {
