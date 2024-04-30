@@ -35,14 +35,14 @@ fn main() {
     let mut score = 0;
     let mut game_over = false;
 
-    // Draw initial game state
-    draw_game(&snake, &food, score, &snake.direction);
-
     let board_width = 100;
     let board_height = 20;
 
     let duration_ms_default = 50;
     let mut duration_ms = duration_ms_default;
+    
+    // Draw initial game state
+    draw_game(&snake, &food, score, &snake.direction, board_height, board_width);
 
     // Game loop
     while !game_over {
@@ -128,10 +128,10 @@ fn main() {
         snake.body.push_front(head);
 
         // Move cursor to the start of the game board
-        execute!(io::stdout(), cursor::MoveTo(0, 11)).unwrap();
+        execute!(io::stdout(), cursor::MoveTo(0, 0)).unwrap();
 
         // Draw updated game state
-        draw_game(&snake, &food, score, &snake.direction);
+        draw_game(&snake, &food, score, &snake.direction, board_height, board_width);
     }
 
     // Display game over screen
