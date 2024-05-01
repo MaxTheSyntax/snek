@@ -110,6 +110,10 @@ fn main() {
     let mut game_over = false;
 
     let duration_ms_default = speed;
+    let board_width = 40;
+    let board_height = 20;
+
+    let duration_ms_default = 100;
     let mut duration_ms = duration_ms_default;
 
     let mut speed_debounce: bool = false;
@@ -143,8 +147,6 @@ fn main() {
 
         // AI
         let mut head = snake.body.front().unwrap().clone();
-        {
-            // if MODE == "ai" {
             if ai == true {
                 if head.0 > food.0 {
                     snake.direction = change_direction(Direction::Left, snake.direction);
@@ -191,7 +193,7 @@ fn main() {
         // Update snake position
         match snake.direction {
             Direction::Up => {
-                if head.1 == 0 {
+                if head.1 <= 0 {
                     head.1 = board_height;
                 }
                 // vertical
@@ -200,7 +202,7 @@ fn main() {
                 }
             }
             Direction::Down => {
-                if head.1 == board_height - 1 {
+                if head.1 >= board_height - 1 {
                     head.1 = 0;
                 }
                 // vertical
@@ -209,7 +211,7 @@ fn main() {
                 }
             }
             Direction::Left => {
-                if head.0 == 0 {
+                if head.0 <= 0 {
                     head.0 = board_width;
                 }
                 // horizontal
@@ -218,7 +220,7 @@ fn main() {
                 }
             }
             Direction::Right => {
-                if head.0 == board_width - 1 {
+                if head.0 >= board_width - 1 {
                     head.0 = 0;
                 }
                 // horizontal
@@ -278,6 +280,24 @@ fn change_direction(new_direction: Direction, current_direction: Direction) -> D
     }
 }
 
+fn move_possible(head: (i32, i32), body: &LinkedList<(i32, i32)>, direction: Direction, mode: &str) -> bool {
+    if mode == "safe ai" { return true; }
+
+    if direction == Direction::Left  && body.contains(&(head.0 - 1, head.1    )) { return false; }
+    if direction == Direction::Right && body.contains(&(head.0 + 1, head.1    )) { return false; }
+    if direction == Direction::Up    && body.contains(&(head.0,     head.1 - 1)) { return false; }
+    if direction == Direction::Down  && body.contains(&(head.0,     head.1 + 1)) { return false; }
+    
+    return true;
+}
+
+fn move_somewhere(head: (i32, i32), body: &LinkedList<(i32, i32)>) -> Direction {
+    if move_possible(head, body, Direction::Left, "ai") { return Direction::Left; }
+    if move_possible(head, body, Direction::Right, "ai") { return Direction::Right; }
+    if move_possible(head, body, Direction::Up, "ai") { return Direction::Up; }
+    return Direction::Down;
+}
+
 fn draw_game(
     snake: &Snake,
     food: &(i32, i32),
@@ -291,11 +311,11 @@ fn draw_game(
     for y in 0..board_height {
         for x in 0..board_width {
             let c = if (x, y) == *food {
-                '$' // The goodies
+                "$ " // The goodies
             } else if snake.body.contains(&(x, y)) {
-                'o' // Snake
+                "o " // Snake
             } else {
-                '.' // Empty space
+                ". " // Empty space
             };
             print!("{}", c);
         }
