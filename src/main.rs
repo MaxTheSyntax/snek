@@ -3,11 +3,16 @@ use crossterm::{
     event::{poll, read, Event, KeyCode, KeyEvent},
     execute, terminal,
 };
-use std::{collections::LinkedList, io::stdin, time::Instant};
+use std::fs::File;
 use std::io;
+use std::io::prelude::*;
 use std::time::Duration;
+use std::{collections::LinkedList, io::stdin, time::Instant};
+
 extern crate rand;
 use rand::Rng;
+
+use serde_json::Value;
 
 #[derive(PartialEq, Debug)]
 enum Direction {
@@ -34,33 +39,64 @@ struct Snake {
 }
 
 fn main() {
-    // Get user to choose mode
-    let mut choice = String::new();
-    println!("Choose mode: ");
-    println!("a) normal ");
-    println!("b) safe ");
-    println!("c) ai ");
-    println!("d) safe ai ");
-    println!();
+    // Path to the options.json file
+    let file_path = "options.json";
 
-    stdin().read_line(&mut choice).expect("Did not enter a valid string");
-    if let Some('\n')=choice.chars().next_back() {
-        choice.pop();
-    }
-    if let Some('\r')=choice.chars().next_back() {
-        choice.pop();
-    }
+    // Open the file in read mode
+    let mut file = File::open(file_path).expect("Failed to open file");
 
-    static mut MODE: &str = "normal";
-    unsafe {
-        if choice == "safe" || choice == "b" {
-            MODE = "safe";
-        } else if choice == "ai" || choice == "c" {
-            MODE = "ai";
-        } else if choice == "safe ai" || choice == "d" {
-            MODE = "safe ai";
-        } 
-    }
+    // Read the contents of the file into a string
+    let mut contents = String::new();
+    file.read_to_string(&mut contents)
+        .expect("Failed to read file");
+
+    // Deserialize json
+    let settings: Value = serde_json::from_str(&contents).expect("Invalid JSON");
+
+    // Extract settings
+    let speed = settings["speed"].as_u64().expect("1 not found / !integer");
+    let boost_speed = settings["boost_speed"]
+        .as_u64()
+        .expect("2 not found / !integer");
+
+    let board_width: i32 = settings["width"].as_i64().expect("3") as i32;
+    let board_height: i32 = settings["height"].as_i64().expect("4") as i32;
+
+    let ai = settings["ai"].as_bool().expect("5 not found / !type");
+    let god = settings["god"].as_bool().expect("6 not found / !type");
+
+    let boost_key_str = settings["boost_key"]
+        .as_str()
+        .expect("boost_key not found / !type");
+    let boost_key_char = boost_key_str.chars().next().unwrap();
+    let boost_key: KeyCode = KeyCode::Char(boost_key_char);
+
+    // // Get user to choose mode
+    // let mut choice = String::new();
+    // println!("Choose mode: ");
+    // println!("a) normal ");
+    // println!("b) safe ");
+    // println!("c) ai ");
+    // println!();
+    //
+    // stdin()
+    //     .read_line(&mut choice)
+    //     .expect("Did not enter a valid string");
+    // if let Some('\n') = choice.chars().next_back() {
+    //     choice.pop();
+    // }
+    // if let Some('\r') = choice.chars().next_back() {
+    //     choice.pop();
+    // }
+    //
+    // static mut MODE: &str = "normal";
+    // unsafe {
+    //     if choice == "safe" || choice == "b" {
+    //         MODE = "safe";
+    //     } else if choice == "ai" || choice == "c" {
+    //         MODE = "ai";
+    //     }
+    // }
 
     // Initialize game elements
     clear();
@@ -73,6 +109,7 @@ fn main() {
     let mut score = 0;
     let mut game_over = false;
 
+    let duration_ms_default = speed;
     let board_width = 40;
     let board_height = 20;
 
@@ -108,18 +145,20 @@ fn main() {
             now.elapsed().as_secs(),
         );
 
-        // AI 
+        // AI
         let mut head = snake.body.front().unwrap().clone();
-        unsafe {
-            if MODE == "ai" || MODE == "safe ai" {
-                if head.0 > food.0 && move_possible(head, &snake.body, Direction::Left, MODE) { snake.direction = change_direction(Direction::Left, snake.direction); }
-                else if head.0 < food.0 && move_possible(head, &snake.body, Direction::Right, MODE) { snake.direction = change_direction(Direction::Right, snake.direction); }
-                else if head.1 > food.1 && move_possible(head, &snake.body, Direction::Up, MODE) { snake.direction = change_direction(Direction::Up, snake.direction); }
-                else if head.1 < food.1 && move_possible(head, &snake.body, Direction::Down, MODE) { snake.direction = change_direction(Direction::Down, snake.direction); }
-                else { snake.direction = move_somewhere(head, &snake.body); }
+            if ai == true {
+                if head.0 > food.0 {
+                    snake.direction = change_direction(Direction::Left, snake.direction);
+                } else if head.0 < food.0 {
+                    snake.direction = change_direction(Direction::Right, snake.direction);
+                } else if head.1 > food.1 {
+                    snake.direction = change_direction(Direction::Up, snake.direction);
+                } else if head.1 < food.1 {
+                    snake.direction = change_direction(Direction::Down, snake.direction);
+                }
             }
         }
-        
         // Handle player input
         if poll(Duration::from_millis(duration_ms)).unwrap() {
             if let Event::Key(KeyEvent { code, .. }) = read().unwrap() {
@@ -136,16 +175,17 @@ fn main() {
                     KeyCode::Right => {
                         snake.direction = change_direction(Direction::Right, snake.direction)
                     }
-                    KeyCode::Char('f') => {
-                        if speed_debounce == false {
-                            duration_ms = 1;
-                            speed_debounce = true;
-                        } else {
-                            duration_ms = duration_ms_default;
-                            speed_debounce = false;
+                    _ => {
+                        if code == boost_key {
+                            if speed_debounce == false {
+                                duration_ms = boost_speed;
+                                speed_debounce = true;
+                            } else {
+                                duration_ms = duration_ms_default;
+                                speed_debounce = false;
+                            }
                         }
                     }
-                    _ => (),
                 }
             }
         }
@@ -202,12 +242,12 @@ fn main() {
             snake.body.pop_back();
         }
 
-        unsafe {
+        {
             // if head.0 < 0 || head.0 >= board_width || head.1 < 0 || head.1 >= board_height || snake.body.contains(&head) {
             //     game_over = true;
             // }
 
-            if snake.body.contains(&head) && MODE == "normal" {
+            if snake.body.contains(&head) && god {
                 game_over = true;
             }
         }
@@ -286,7 +326,7 @@ fn draw_game(
     execute!(io::stdout(), cursor::MoveTo(0, 0)).unwrap();
     // Draw the score and direction
     println!(
-        "      Score: {:<25} Direction: {:<25} Time Elapsed: {} ",
+        "Score: {:<15} Direction: {:<15} Time Elapsed: {:<14} Press 'O' for options",
         score,
         direction.as_str(),
         now,
