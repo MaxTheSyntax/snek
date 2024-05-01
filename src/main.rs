@@ -110,10 +110,6 @@ fn main() {
     let mut game_over = false;
 
     let duration_ms_default = speed;
-    let board_width = 40;
-    let board_height = 20;
-
-    let duration_ms_default = 100;
     let mut duration_ms = duration_ms_default;
 
     let mut speed_debounce: bool = false;
@@ -158,7 +154,7 @@ fn main() {
                     snake.direction = change_direction(Direction::Down, snake.direction);
                 }
             }
-        }
+        
         // Handle player input
         if poll(Duration::from_millis(duration_ms)).unwrap() {
             if let Event::Key(KeyEvent { code, .. }) = read().unwrap() {
@@ -247,7 +243,7 @@ fn main() {
             //     game_over = true;
             // }
 
-            if snake.body.contains(&head) && god {
+            if snake.body.contains(&head) && !god {
                 game_over = true;
             }
         }
