@@ -1,18 +1,20 @@
+use core::str;
 use crossterm::{
     cursor,
     event::{poll, read, Event, KeyCode, KeyEvent},
     execute, terminal,
 };
-use std::fs::File;
+use std::fs::*;
 use std::io;
 use std::io::prelude::*;
+use std::thread::sleep;
 use std::time::Duration;
-use std::{collections::LinkedList, io::stdin, time::Instant};
+use std::{collections::LinkedList, time::Instant};
 
 extern crate rand;
 use rand::Rng;
 
-use serde_json::Value;
+use serde_json::{json, Value};
 
 #[derive(PartialEq, Debug)]
 enum Direction {
@@ -39,6 +41,7 @@ struct Snake {
 }
 
 fn main() {
+    std::thread::sleep(Duration::from_millis(100));
     // Path to the options.json file
     let file_path = "options.json";
 
@@ -143,18 +146,18 @@ fn main() {
 
         // AI
         let mut head = snake.body.front().unwrap().clone();
-            if ai == true {
-                if head.0 > food.0 {
-                    snake.direction = change_direction(Direction::Left, snake.direction);
-                } else if head.0 < food.0 {
-                    snake.direction = change_direction(Direction::Right, snake.direction);
-                } else if head.1 > food.1 {
-                    snake.direction = change_direction(Direction::Up, snake.direction);
-                } else if head.1 < food.1 {
-                    snake.direction = change_direction(Direction::Down, snake.direction);
-                }
+        if ai == true {
+            if head.0 > food.0 {
+                snake.direction = change_direction(Direction::Left, snake.direction);
+            } else if head.0 < food.0 {
+                snake.direction = change_direction(Direction::Right, snake.direction);
+            } else if head.1 > food.1 {
+                snake.direction = change_direction(Direction::Up, snake.direction);
+            } else if head.1 < food.1 {
+                snake.direction = change_direction(Direction::Down, snake.direction);
             }
-        
+        }
+
         // Handle player input
         if poll(Duration::from_millis(duration_ms)).unwrap() {
             if let Event::Key(KeyEvent { code, .. }) = read().unwrap() {
@@ -170,6 +173,9 @@ fn main() {
                     }
                     KeyCode::Right => {
                         snake.direction = change_direction(Direction::Right, snake.direction)
+                    }
+                    KeyCode::Char('o') => {
+                        write_file(file_path);
                     }
                     _ => {
                         if code == boost_key {
@@ -276,21 +282,42 @@ fn change_direction(new_direction: Direction, current_direction: Direction) -> D
     }
 }
 
-fn move_possible(head: (i32, i32), body: &LinkedList<(i32, i32)>, direction: Direction, mode: &str) -> bool {
-    if mode == "safe ai" { return true; }
+fn move_possible(
+    head: (i32, i32),
+    body: &LinkedList<(i32, i32)>,
+    direction: Direction,
+    mode: &str,
+) -> bool {
+    if mode == "safe ai" {
+        return true;
+    }
 
-    if direction == Direction::Left  && body.contains(&(head.0 - 1, head.1    )) { return false; }
-    if direction == Direction::Right && body.contains(&(head.0 + 1, head.1    )) { return false; }
-    if direction == Direction::Up    && body.contains(&(head.0,     head.1 - 1)) { return false; }
-    if direction == Direction::Down  && body.contains(&(head.0,     head.1 + 1)) { return false; }
-    
+    if direction == Direction::Left && body.contains(&(head.0 - 1, head.1)) {
+        return false;
+    }
+    if direction == Direction::Right && body.contains(&(head.0 + 1, head.1)) {
+        return false;
+    }
+    if direction == Direction::Up && body.contains(&(head.0, head.1 - 1)) {
+        return false;
+    }
+    if direction == Direction::Down && body.contains(&(head.0, head.1 + 1)) {
+        return false;
+    }
+
     return true;
 }
 
 fn move_somewhere(head: (i32, i32), body: &LinkedList<(i32, i32)>) -> Direction {
-    if move_possible(head, body, Direction::Left, "ai") { return Direction::Left; }
-    if move_possible(head, body, Direction::Right, "ai") { return Direction::Right; }
-    if move_possible(head, body, Direction::Up, "ai") { return Direction::Up; }
+    if move_possible(head, body, Direction::Left, "ai") {
+        return Direction::Left;
+    }
+    if move_possible(head, body, Direction::Right, "ai") {
+        return Direction::Right;
+    }
+    if move_possible(head, body, Direction::Up, "ai") {
+        return Direction::Up;
+    }
     return Direction::Down;
 }
 
@@ -328,9 +355,92 @@ fn draw_game(
         now,
     );
 }
+//ask for settings and write them to options.json
+fn write_file(file: &str) -> std::io::Result<()> {
+    // save speed
+    println!("Input speed in milliseconds, we recommend values between 20 and 500 // default: 150");
+    let mut speed = String::new();
+    io::stdin()
+        .read_line(&mut speed)
+        .expect("Failed to read line");
+    let speed_num: u32 = speed.trim().parse().expect("Please enter a valid number");
+
+    // save boost speed
+    println!(
+        "Input boost speed in milliseconds, we recommend values between 1 and 10 // default: 2"
+    );
+    let mut boost_speed = String::new();
+    io::stdin()
+        .read_line(&mut boost_speed)
+        .expect("input failed");
+    let boost_num: u32 = boost_speed.trim().parse().expect("invalid input");
+
+    // save height and width
+    println!("Input height, we recommend values between 10 and 100 // default: 20");
+    let mut height = String::new();
+    io::stdin().read_line(&mut height).expect("input failed");
+    let height_num: i64 = height.trim().parse().expect("invalid input");
+
+    println!("Input width, we recommend values between 20 and 150 // default: 40");
+    let mut width = String::new();
+    io::stdin().read_line(&mut width).expect("input failed");
+    let width_num: i64 = width.trim().parse().expect("invalid input");
+
+    println!("Use our sophisticated open sourced AI for the marvelous gameplay? true/false // default: false");
+    let mut ai = String::new();
+    io::stdin().read_line(&mut ai).expect("input failed");
+    let ai_bool: bool = match ai.trim().parse() {
+        Ok(result) => result,
+        Err(_) => {
+            println!("Please enter 'true' or 'false'");
+            false
+        }
+    };
+
+    println!("Ignore damage? true/false // default: false");
+    let mut god = String::new();
+    io::stdin().read_line(&mut god).expect("input failed");
+    let god_value: bool = match ai.trim().parse() {
+        Ok(result) => result,
+        Err(_) => {
+            println!("Please enter 'true' or 'false'");
+            false
+        }
+    };
+
+    //
+    // "height": height,
+    // "width": width,
+    //
+    // "ai": ai,
+    // "god": god,
+    //
+    // "boost_key": boost_key
+    //
+
+    // create json message
+    let json_msg = json!({
+        "speed": speed_num,
+        "boost_speed": boost_num,
+        "height": height_num,
+        "width": width_num,
+        "ai": ai_bool,
+        "god": god_value,
+        "boost_key": ' '
+    });
+
+    // open file for writing
+    let mut file = File::create(file).expect("Couldn't open file");
+
+    // serialize json and write to file
+    file.write_all(serde_json::to_string_pretty(&json_msg).unwrap().as_bytes())?;
+
+    Ok(())
+}
 
 fn draw_game_over(score: u32) {
     clear();
     // Display game over message and final score
     println!("Game Over! Your final score: {}", score);
+    std::thread::sleep(Duration::from_millis(10000));
 }
