@@ -4,6 +4,7 @@ use crossterm::{
     event::{poll, read, Event, KeyCode, KeyEvent},
     execute, terminal,
 };
+
 use std::fs::*;
 use std::io;
 use std::io::prelude::*;
@@ -42,6 +43,7 @@ struct Snake {
 
 fn main() {
     std::thread::sleep(Duration::from_millis(100));
+
     // Path to the options.json file
     let file_path = "options.json";
 
@@ -146,6 +148,7 @@ fn main() {
 
         // AI
         let mut head = snake.body.front().unwrap().clone();
+
         if ai == true {
             if head.0 > food.0 {
                 snake.direction = change_direction(Direction::Left, snake.direction);
@@ -174,9 +177,11 @@ fn main() {
                     KeyCode::Right => {
                         snake.direction = change_direction(Direction::Right, snake.direction)
                     }
+
                     KeyCode::Char('o') => {
                         write_file(file_path);
                     }
+
                     _ => {
                         if code == boost_key {
                             if speed_debounce == false {
