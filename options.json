@@ -1,9 +1,9 @@
 {
-  "ai": false,
+  "ai": true,
   "boost_key": " ",
   "boost_speed": 2,
   "god": false,
-  "height": 20,
+  "height": 40,
   "speed": 150,
-  "width": 40
+  "width": 20
 }
